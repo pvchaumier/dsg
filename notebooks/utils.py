@@ -6,9 +6,7 @@ def rotation(img, angle):
 
 
 def transpose(img):
-    """Transpose the image."""
-    return img[::-1,::-1,:]
-
+    pass
 
 def symmetry_horiz(img):
     """Flips the image along an horizontal axis."""
