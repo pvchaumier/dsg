@@ -6,10 +6,10 @@ def rotation(img, angle):
 def transpose(img):
     pass
 
-def symetry_horiz(img):
+def symmetry_horiz(img):
     pass
 
-def symetry_vertical(img):
+def symmetry_vertical(img):
     pass
 
 def resize(img, new_size=80):
