@@ -14,6 +14,9 @@ parser = argparse.ArgumentParser(description='first-test')
 parser.add_argument("--height", type=int, default=150, help="Image height")
 parser.add_argument("--width", type=int, default=200, help="Image width")
 parser.add_argument("--gray", type=int, default=0, help="Use grayscale")
+parser.add_argument("--n_filters", type=int, default=96, help="Number of filters on each layer")
+parser.add_argument("--n_conv", type=int, default=2, help="Number of convolutional layers")
+parser.add_argument("--hidden_dim", type=int, default=128, help="Hidden layer dimension")
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
 parser.add_argument("--lr_method", type=str, default="rmsprop", help="Learning method (SGD, RMSProp, Adadelta, Adam..)")
 parser.add_argument("--dropout", type=float, default=0., help="Dropout")
@@ -56,6 +59,7 @@ parameters = {}
 parameters['height'] = opts.height
 parameters['width'] = opts.width
 parameters['gray'] = opts.gray == 1
+parameters['n_filters'] = opts.n_filters
 parameters['n_conv'] = opts.n_conv
 parameters['hidden_dim'] = opts.hidden_dim
 parameters['batch_size'] = opts.batch_size
@@ -142,9 +146,9 @@ start = time.time()
 # Training
 for n_epoch in xrange(n_epochs):
     logger.info('Starting epoch %i...' % n_epoch)
-    perm = np.random.permutation(len(x_train))
-    x_train = [x_train[i] for i in perm]
-    y_train = [y_train[i] for i in perm]
+    permutation = np.random.permutation(len(x_train))
+    x_train = [x_train[i] for i in permutation]
+    y_train = [y_train[i] for i in permutation]
     for j in xrange(0, len(x_train), batch_size):
         count += 1
         new_cost = f_train(x_train[j:j + batch_size], y_train[j:j + batch_size])
