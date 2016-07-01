@@ -20,12 +20,14 @@ parser.add_argument("--hidden_dim", type=int, default=128, help="Hidden layer di
 parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
 parser.add_argument("--lr_method", type=str, default="rmsprop", help="Learning method (SGD, RMSProp, Adadelta, Adam..)")
 parser.add_argument("--dropout", type=float, default=0., help="Dropout")
+parser.add_argument("--data_augm", type=int, default=1, help="Data augmentation")
 parser.add_argument("--dev_size", type=int, default=1500, help="Development set size")
 parser.add_argument("--comment", type=str, default="", help="Comment")
 parser.add_argument("--evaluate", type=int, default=0, help="Fast evaluation of the model")
 parser.add_argument("--reload", type=int, default=0, help="Reload previous model")
 parser.add_argument("--gpu_id", type=int, default=0, help="GPU ID")
 parser.add_argument("--server", type=str, default="", help="Server")
+parser.add_argument("--seed", type=int, default=0, help="Seed")
 opts = parser.parse_args()
 
 
@@ -46,12 +48,13 @@ else:
 from utils import get_experiment_name
 from experiment import Experiment
 from nn import build_network
-from helpers import process_image
+from helpers import process_image, random_transformation
 
 
-# Initialize GPU
+# Initialize seed and GPU
+np.random.seed(opts.seed)
 if opts.gpu_id >= 0:
-    theano.sandbox.cuda.use("gpu0")
+    theano.sandbox.cuda.use("gpu%i" % opts.gpu_id)
 
 
 # Parse and save parameters
@@ -65,6 +68,7 @@ parameters['hidden_dim'] = opts.hidden_dim
 parameters['batch_size'] = opts.batch_size
 parameters['lr_method'] = opts.lr_method
 parameters['dropout'] = opts.dropout
+parameters['data_augm'] = opts.data_augm == 1
 parameters['dev_size'] = opts.dev_size
 parameters['comment'] = opts.comment
 
@@ -120,6 +124,10 @@ logger.info('Found %i elements' % len(id_to_img))
 # Process images, split the train and dev sets
 x_data = [(process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for k, v in id_to_img.items()]
 x_data, y_data = zip(*x_data)
+np.random.seed(opts.seed)
+permutation = np.random.permutation(len(x_data))
+x_data = [x_data[i] for i in permutation]
+y_data = [y_data[i] for i in permutation]
 x_train = x_data[:-opts.dev_size]
 y_train = y_data[:-opts.dev_size]
 x_valid = x_data[-opts.dev_size:]
@@ -151,13 +159,17 @@ for n_epoch in xrange(n_epochs):
     y_train = [y_train[i] for i in permutation]
     for j in xrange(0, len(x_train), batch_size):
         count += 1
-        new_cost = f_train(x_train[j:j + batch_size], y_train[j:j + batch_size])
+        x_input, y_input = x_train[j:j + batch_size], y_train[j:j + batch_size]
+        if parameters['data_augm']:
+            x_input, y_input = zip(*[random_transformation(x, y) for x, y in zip(x_input, y_input)])
+        new_cost = f_train(x_input, y_input)
         last_costs.append(new_cost)
-        if count % 100 == 0:
+        if count % 200 == 0:
             logger.info('{0:>6} - {1}'.format(count, np.mean(last_costs)))
             last_costs = []
     new_accuracy = evaluate(x_valid, y_valid)
     if new_accuracy > best_accuracy:
         best_accuracy = new_accuracy
+        experiment.dump('New best accuracy: %f' % best_accuracy)
     logger.info('Epoch %i done.' % n_epoch)
     logger.info('Time: %.5f - New accuracy: %.5f - Best: %.5f' % (time.time() - start, new_accuracy, best_accuracy))
