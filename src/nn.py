@@ -1,6 +1,8 @@
 import numpy as np
 import theano
 import theano.tensor as T
+
+# UltraDeep
 from learning_method import LearningMethod
 from layer import HiddenLayer, DropoutLayer
 from convolution import Conv2DLayer

@@ -23,7 +23,7 @@ def vertical_flip(img):
     return img[:, :, ::-1]
 
 
-def rotate_90(img):
+def rotation_90(img):
     """
     Rotate the image of 90 degrees.
     """
@@ -37,7 +37,7 @@ def rotation_180(img):
     return img[:, ::-1, ::-1]
 
 
-def rotate_270(img):
+def rotation_270(img):
     """
     Rotate the image of 270 degrees.
     """
