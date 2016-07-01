@@ -6,7 +6,7 @@ def process_image(image, gray, height, width):
     image = image.astype(np.float32).mean(axis=2) if gray else image
     if image.shape[:2] != (height, width):
         image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
-    return image if gray else image.transpose(2, 0, 1)
+    return image[np.newaxis, :, :] if gray else image.transpose(2, 0, 1)
 
 
 def horizontal_flip(img):

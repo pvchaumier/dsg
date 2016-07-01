@@ -114,7 +114,7 @@ logger.info('Found %i elements' % len(id_to_img))
 
 
 # Process images, split the train and dev sets
-x_data = [(process_image(v['image'], False, opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for k, v in id_to_img.items()]
+x_data = [(process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for k, v in id_to_img.items()]
 x_data, y_data = zip(*x_data)
 x_train = x_data[:-opts.dev_size]
 y_train = y_data[:-opts.dev_size]

@@ -38,7 +38,7 @@ def build_network(parameters):
     y_image = T.ivector()
 
     # 2 convolutions
-    conv_layer1 = Conv2DLayer(20, 3, 8, 8, 'valid', (4, 4), 'conv_layer1')
+    conv_layer1 = Conv2DLayer(20, 1 if parameters['gray'] else 3, 8, 8, 'valid', (4, 4), 'conv_layer1')
     conv_layer2 = Conv2DLayer(64, 20, 8, 8, 'valid', (2, 2), 'conv_layer2')
     conv_output = conv_layer2.link(conv_layer1.link(x_image)).reshape((x_image.shape[0], 64 * 6 * 6))
     # print('conv_output', conv_output.eval({x_image: np.random.rand(2, 3, 80, 80).astype(np.float32)}).shape)
