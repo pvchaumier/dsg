@@ -23,6 +23,13 @@ def vertical_flip(img):
     return img[:, :, ::-1]
 
 
+def rotate_90(img):
+    """
+    Rotate the image of 90 degrees.
+    """
+    return np.rot90(img.transpose((1, 2, 0)), 1).transpose((2, 0, 1))
+
+
 def rotation_180(img):
     """
     Rotate the image of 180 degrees.
@@ -30,7 +37,14 @@ def rotation_180(img):
     return img[:, ::-1, ::-1]
 
 
-def transpose(img):
+def rotate_270(img):
+    """
+    Rotate the image of 270 degrees.
+    """
+    return np.rot90(img.transpose((1, 2, 0)), 3).transpose((2, 0, 1))
+
+
+def transposition(img):
     """
     Transpose the image.
     """
