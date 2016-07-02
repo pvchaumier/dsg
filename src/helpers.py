@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 
 from skimage.transform import rotate
+from skimage.color import rgb2hsv, hsv2rgb
 
 
 def process_image(image, gray, height, width):
@@ -37,6 +38,17 @@ def transposition(img):
     return img.transpose((0, 2, 1))
 
 
+def saturate(img, rate):
+    """Change saturation."""
+    assert -1.0 <= rate <= 1.0
+    new_img = rgb2hsv(img)
+    if rate < 0:
+        new_img[:, :, 1] += rate * new_img[:, :, 1]
+    else:
+        new_img[:, :, 1] += rate * (1 - new_img[:, :, 1])
+    return hsv2rgb(new_img)
+
+
 def random_transformation(img, label):
     """Create a random transformation for a given sample.
 
@@ -57,36 +69,40 @@ def random_transformation(img, label):
         'rotation_270',
         'horizontal_flip',
         'vertical_flip',
-        'transposition'
+        'transposition',
+        'saturate'
     ]
     transformation = random.choice(possible_transformations)
 
     #
     # Transformation label invariant
     #
-    if transformation == "identity":
+    if transformation == 'identity':
         angle = random.choice([-10, -5, 0, 5, 10])
         return rotate(img, angle, resize=True, mode='wrap'), label
-    if transformation == "horizontal_flip":
+    if transformation == 'horizontal_flip':
         return horizontal_flip(img), label
-    if transformation == "vertical_flip":
+    if transformation == 'vertical_flip':
         return vertical_flip(img), label
-    if transformation == "rotation_180":
+    if transformation == 'rotation_180':
         angle = 180 + random.choice([-10, -5, 0, 5, 10])
         return rotate(img, angle, resize=True, mode='wrap'), label
+    if transformation == 'saturate':
+        rate = random.choice([0.1, 0.2, -0.25, -0.5])
+        return saturate(img, rate)
 
     #
     # Transformation label variant
     #
     new_label = 1 - label if label < 2 else label
 
-    if transformation == "rotation_90":
+    if transformation == 'rotation_90':
         angle = 90 + random.choice([-10, -5, 0, 5, 10])
         return rotate(img, angle, resize=True, mode='wrap'), new_label
-    if transformation == "rotation_270":
+    if transformation == 'rotation_270':
         angle = 270 + random.choice([-10, -5, 0, 5, 10])
         return rotate(img, angle, resize=True, mode='wrap'), new_label
-    if transformation == "transposition":
+    if transformation == 'transposition':
         return transposition(img), new_label
 
     assert(False)
