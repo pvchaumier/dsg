@@ -3,6 +3,7 @@ import sys
 import time
 import logging
 import argparse
+import itertools
 import numpy as np
 import theano
 import scipy
@@ -169,7 +170,8 @@ def write_predictions(idx, x, batch_size=100):
     assert len(idx) == len(x)
     predictions = []
     for j in xrange(0, len(x), batch_size):
-        predictions += list(f_eval(x[j:j + batch_size]).argmax(axis=1))
+        predictions.append(list(f_eval(x[j:j + batch_size]).argmax(axis=1)))
+    predictions = list(itertools.chain.from_iterable(predictions))
     assert len(x) == len(predictions)
     predictions_path = os.path.join(experiment.dump_path, 'predictions.csv')
     with open(predictions_path, 'w') as f:
