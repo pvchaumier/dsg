@@ -209,7 +209,6 @@ for n_epoch in xrange(n_epochs):
         x_input, y_input = x_train[j:j + batch_size], y_train[j:j + batch_size]
         if parameters['data_augm']:
             x_input, y_input = zip(*[random_transformation(x, y) for x, y in zip(x_input, y_input)])
-        x_input = [x[(2, 1, 0), :, :] for x in x_input]  # RGB -> BGR (seriously...)
         new_cost = f_train(x_input, y_input)
         last_costs.append(new_cost)
         if count % 200 == 0:
