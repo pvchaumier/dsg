@@ -57,7 +57,7 @@ def data_augmentation(old_label_id, old_img_folder, new_img_folder):
         new_label_id[label].append(str(img_id)) + '_v')
 
         # 180° rotation
-        img_rot180 = rotate(img, 180)
+        img_rot180 = rotate(img, 180, resize=True, mode='wrap')
         img_resized = resize_cv(img_rot180, False, NEW_SIZE, NEW_SIZE)
         new_img_path = os.path.join(new_img_folder, str(img_id)) + '_r180.jpg'
         misc.imsave(new_img_path, img_resized)
@@ -86,13 +86,13 @@ def data_augmentation(old_label_id, old_img_folder, new_img_folder):
 
         # transposition
         img_tr = transposition(img)
-        img_resized = resize_cv(img_rot180, False, NEW_SIZE, NEW_SIZE)
+        img_resized = resize_cv(img_tr, False, NEW_SIZE, NEW_SIZE)
         new_img_path = os.path.join(new_img_folder, str(img_id)) + '_tr.jpg'
         misc.imsave(new_img_path, img_resized)
         new_label_id[new_label].append(str(img_id)) + '_tr')
 
         # rotation 90°
-        img_rot90 = rotate(img, 90)
+        img_rot90 = rotate(img, 90, resize=True, mode='wrap'))
         img_resized = resize_cv(img_rot90, False, NEW_SIZE, NEW_SIZE)
         new_img_path = os.path.join(new_img_folder, str(img_id)) + '_r90.jpg'
         misc.imsave(new_img_path, img_resized)
@@ -119,7 +119,7 @@ def data_augmentation(old_label_id, old_img_folder, new_img_folder):
         new_label_id[new_label].append(str(img_id)) + '_r100')
 
         # rotation 270°
-        img_rot270 = rotate(img, 270)
+        img_rot270 = rotate(img, 270, resize=True, mode='wrap'))
         img_resized = resize_cv(img_rot270, False, NEW_SIZE, NEW_SIZE)
         new_img_path = os.path.join(new_img_folder, str(img_id)) + '_r270.jpg'
         misc.imsave(new_img_path, img_resized)

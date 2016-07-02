@@ -1,4 +1,8 @@
-"""Helper functions to preprocess images."""
+"""Helper functions to preprocess images.
+
+Fot the rotation, one can use the rotate image from scikit image.
+Be careful to use the options resize=True and mode='wrap'.
+"""
 
 import numpy as np
 import cv2
