@@ -29,7 +29,7 @@ def parse_optimization_method(lr_method):
     return lr_method_name, lr_method_parameters
 
 
-def build_network(parameters, experiment):
+def build_network(parameters, experiment, evaluate):
     """
     Build the network.
     """
@@ -95,12 +95,12 @@ def build_network(parameters, experiment):
         outputs=cost,
         updates=LearningMethod(5.0).get_updates(lr_method_name, cost, params, **lr_method_parameters),
         givens={is_train: np.cast['int32'](1)}
-    )
+    ) if not evaluate else None
 
     return f_eval, f_train
 
 
-def build_vgg_network(parameters, experiment):
+def build_vgg_network(parameters, experiment, evaluate):
     """
     Build the network (pretrained from VGG net).
     """
@@ -229,6 +229,6 @@ def build_vgg_network(parameters, experiment):
         outputs=cost,
         updates=LearningMethod(5.0).get_updates(lr_method_name, cost, params, **lr_method_parameters),
         givens={is_train: np.cast['int32'](1)}
-    )
+    ) if not evaluate else None
 
     return f_eval, f_train

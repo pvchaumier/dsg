@@ -97,7 +97,7 @@ logger.info(parameters)
 
 # Build the network
 logger.info("Building network...")
-f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment)
+f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment, opts.evaluate)
 
 
 # Load dataset
