@@ -64,7 +64,7 @@ def random_transformation(img, label):
     #
     # Transformation label invariant
     #
-    if transformation == "identitlabel":
+    if transformation == "identity":
         angle = random.choice([-10, -5, 0, 5, 10])
         return rotate(img, angle, resize=True, mode='wrap'), label
     if transformation == "horizontal_flip":
