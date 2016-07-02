@@ -4,12 +4,16 @@ Fot the rotation, one can use the rotate image from scikit image.
 Be careful to use the options resize=True and mode='wrap'.
 """
 
+import random
+
 import numpy as np
 import cv2
 
 from skimage.transform import rotate
 
+
 def process_image(image, gray, height, width):
+    """Resize the image to height and width."""
     image = image.astype(np.float32).mean(axis=2) if gray else image
     if image.shape[:2] != (height, width):
         image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
@@ -34,41 +38,55 @@ def transposition(img):
 
 
 def random_transformation(img, label):
-    """Create a random transformation for a given sample."""
-    assert label in xrange(4)
-    # label == 0: North-South orientation
-    # label == 1: East-West orientation
-    # label == 2: Flat roof
-    # label == 3: Other
+    """Create a random transformation for a given sample.
 
+    Labels:
+    - 0: North-South orientation
+    - 1: East-West orientation
+    - 2: Flat roof
+    - 3: Other
+    """
+    assert label in xrange(4), 'Label error, value should be between 0 and 3'
+
+    # for the transformation involving a rotation, the angle is modified
+    # randomly to change a bit the angle.
     possible_transformations = [
-        'identity', 'horizontal_flip', 'vertical_flip',
-        'rotation_90', 'rotation_180', 'rotation_270', 'transposition'
+        'identity',
+        'rotation_90',
+        'rotation_180',
+        'rotation_270',
+        'horizontal_flip',
+        'vertical_flip',
+        'transposition'
     ]
-    transformation = np.random.choice(possible_transformations)
+    transformation = random.choice(possible_transformations)
 
+    #
+    # Transformation label invariant
+    #
     if transformation == "identitlabel":
-        return img, label
-    elif transformation == "horizontal_flip":
+        angle = random.choice([-10, -5, 0, 5, 10])
+        return rotate(img, angle, resize=True, mode='wrap'), label
+    if transformation == "horizontal_flip":
         return horizontal_flip(img), label
-    elif transformation == "vertical_flip":
+    if transformation == "vertical_flip":
         return vertical_flip(img), label
-    elif transformation == "rotation_90":
-        if label <= 1:
-            return rotate(img, 90, resize=True), 1 - label
-        else:
-            return rotate(img, 90, resize=True), label
-    elif transformation == "rotation_180":
-        return rotate(img), label
-    elif transformation == "rotation_270":
-        if label <= 1:
-            return rotate(img, 270, resize=True), 1 - label
-        else:
-            return rotate(img, 270, resize=True), label
-    elif transformation == "transposition":
-        if label <= 1:
-            return transposition(img), 1 - label
-        else:
-            return transposition(img), label
+    if transformation == "rotation_180":
+        angle = 180 + random.choice([-10, -5, 0, 5, 10])
+        return rotate(img, angle, resize=True, mode='wrap'), label
+
+    #
+    # Transformation label variant
+    #
+    new_label = 1 - label if label < 2 else label
+
+    if transformation == "rotation_90":
+        angle = 90 + random.choice([-10, -5, 0, 5, 10])
+        return rotate(img, angle, resize=True, mode='wrap'), new_label
+    if transformation == "rotation_270":
+        angle = 270 + random.choice([-10, -5, 0, 5, 10])
+        return rotate(img, angle, resize=True, mode='wrap'), new_label
+    if transformation == "transposition":
+        return transposition(img), new_label
 
     assert(False)
