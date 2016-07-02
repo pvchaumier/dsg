@@ -89,15 +89,18 @@ experiment = Experiment(experiment_name, dump_path)
 # Experiment initialization
 logger = logging.getLogger()
 logger.info('Starting experiment: %s' % experiment_name)
-if int(opts.reload) == 1 or opts.evaluate:
-    logger.info('Reloading previous model...')
-    experiment.load()
 logger.info(parameters)
 
 
 # Build the network
 logger.info("Building network...")
-f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment, opts.evaluate)
+f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment, opts.evaluate == 1)
+
+
+# Reload the previous best model
+if opts.reload == 1 or opts.evaluate == 1:
+    logger.info('Reloading previous model...')
+    experiment.load()
 
 
 # Load dataset
@@ -107,31 +110,41 @@ logger.info('Found %i images' % len(images_filenames))
 
 
 # Parse CSV file
-id_to_img = {}
-img_to_id = {}
-for i, line in enumerate(open(os.path.join(data_path, 'id_train.csv'))):
-    if i == 0:
-        continue
-    line = line.rstrip().split(',')
-    assert len(line) == 2 and line[1].isdigit() and (line[0].isdigit() or line[0][0] == '-' and line[0][1:].isdigit())
-    assert int(line[0]) not in img_to_id
-    img_to_id[int(line[0])] = i - 1
-    if int(line[0]) < 0:  # TODO: why are there negative IDs?????
-        logger.warning('Found negative ID: "%s"' % line)
-        continue
-    image_path = os.path.join(images_path, '%i.jpg' % abs(int(line[0])))
-    assert os.path.isfile(image_path), image_path
-    id_to_img[i - 1] = {
-        'img_id': int(line[0]),
-        'label': int(line[1]),
-        'image': scipy.misc.imread(image_path)
-    }
-logger.info('Found %i elements' % len(id_to_img))
+def parse_CSV(train):
+    filename = 'id_train.csv' if train else 'sample_submission4.csv'
+    id_to_img = {}
+    img_to_id = {}
+    for i, line in enumerate(open(os.path.join(data_path, filename))):
+        if i == 0:
+            continue
+        line = line.rstrip().split(',')
+        assert len(line) == 2 and line[1].isdigit() and (line[0].isdigit() or line[0][0] == '-' and line[0][1:].isdigit())
+        assert int(line[0]) not in img_to_id
+        img_to_id[int(line[0])] = i - 1
+        # if int(line[0]) < 0:  # TODO: why are there negative IDs?????
+        #     logger.warning('Found negative ID: "%s"' % line)
+        #     continue
+        image_path = os.path.join(images_path, '%i.jpg' % int(line[0]))
+        assert os.path.isfile(image_path), image_path
+        id_to_img[i - 1] = {
+            'img_id': int(line[0]),
+            'label': int(line[1]),
+            'image': scipy.misc.imread(image_path)
+        }
+    return id_to_img, img_to_id
 
 
-# Process images, split the train and dev sets
-x_data = [(process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for k, v in id_to_img.items()]
+# Load training set images
+id_to_img, img_to_id = parse_CSV(True)
+logger.info('Found %i images for training.' % len(id_to_img))
+
+
+# Process images
+x_data = [(process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for _, v in id_to_img.items()]
 x_data, y_data = zip(*x_data)
+
+
+# Split the train and dev sets
 np.random.seed(opts.seed)
 permutation = np.random.permutation(len(x_data))
 x_data = [x_data[i] for i in permutation]
@@ -144,10 +157,34 @@ y_valid = y_data[-opts.dev_size:]
 
 # Evaluate the model
 def evaluate(x, y, batch_size=100):
+    assert len(x) == len(y)
     count_correct = 0
     for i in xrange(0, len(x), batch_size):
         count_correct += np.sum(f_eval(x[i:i + batch_size]).argmax(axis=1) == y[i:i + batch_size])
     return count_correct * 1.0 / len(x)
+
+
+# Write predictions into a file
+def write_predictions(idx, x, batch_size=100):
+    assert len(idx) == len(x)
+    predictions = []
+    for j in xrange(0, len(x), batch_size):
+        predictions += list(f_eval(x[j:j + batch_size]).argmax(axis=1))
+    assert len(x) == len(predictions)
+    predictions_path = os.path.join(experiment.dump_path, 'predictions.csv')
+    with open(predictions_path, 'w') as f:
+        f.write('Id,label\n' + '\n'.join("%i,%i" % (i, y + 1) for (i, y) in zip(idx, predictions)) + '\n')
+    logger.info('Wrote %i predictions into %s' % (len(predictions), predictions_path))
+
+
+# Evaluate the model and write the predictions into a file
+if opts.evaluate == 1:
+    logger.info('Score on dev: %f' % evaluate(x_valid, y_valid))  # Careful, since we ignored negative IDs before, devset is actually not the same...
+    id_to_img_test, img_to_id_test = parse_CSV(False)
+    logger.info('Found %i images to classify.' % len(id_to_img_test))
+    id_data_test, x_data_test = zip(*[(v['img_id'], process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255.) for _, v in id_to_img_test.items()])
+    write_predictions(id_data_test, x_data_test)
+    exit()
 
 
 # Training initialization
