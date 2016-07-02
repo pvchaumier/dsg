@@ -11,6 +11,7 @@ import theano.sandbox.cuda
 
 # Parse parameters
 parser = argparse.ArgumentParser(description='first-test')
+parser.add_argument("--network", type=str, default="simple", help="Network type")
 parser.add_argument("--height", type=int, default=150, help="Image height")
 parser.add_argument("--width", type=int, default=200, help="Image width")
 parser.add_argument("--gray", type=int, default=0, help="Use grayscale")
@@ -47,7 +48,7 @@ else:
 # Libraries / Helpers
 from utils import get_experiment_name
 from experiment import Experiment
-from nn import build_network
+from nn import build_network, build_vgg_network
 from helpers import process_image, random_transformation
 
 
@@ -59,6 +60,7 @@ if opts.gpu_id >= 0:
 
 # Parse and save parameters
 parameters = {}
+parameters['network'] = opts.network
 parameters['height'] = opts.height
 parameters['width'] = opts.width
 parameters['gray'] = opts.gray == 1
@@ -71,7 +73,13 @@ parameters['dropout'] = opts.dropout
 parameters['data_augm'] = opts.data_augm == 1
 parameters['dev_size'] = opts.dev_size
 parameters['comment'] = opts.comment
+parameters['seed'] = opts.seed
 
+
+# Parameters check
+assert parameters['n_conv'] in xrange(2, 4) and 0 <= parameters['dropout'] < 1
+assert parameters['network'] in ['simple', 'vgg']
+assert parameters['network'] == 'simple' or (not parameters['gray'] and parameters['height'] == parameters['width'] == 224)
 
 # Define experiment
 experiment_name = 'first,' + get_experiment_name(parameters)
@@ -89,7 +97,7 @@ logger.info(parameters)
 
 # Build the network
 logger.info("Building network...")
-f_eval, f_train = build_network(parameters)
+f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment)
 
 
 # Load dataset
