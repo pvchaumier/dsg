@@ -95,11 +95,11 @@ logger.info(parameters)
 
 # Build the network
 logger.info("Building network...")
-f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment, opts.evaluate == 1)
+f_eval, f_train = (build_network if parameters['network'] == 'simple' else build_vgg_network)(parameters, experiment, opts.evaluate)
 
 
 # Reload the previous best model
-if opts.reload == 1 or opts.evaluate == 1:
+if opts.reload == 1 or opts.evaluate:
     logger.info('Reloading previous model...')
     experiment.load()
 
@@ -141,8 +141,8 @@ logger.info('Found %i images for training.' % len(id_to_img))
 
 
 # Process images
-x_data = [(process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for _, v in id_to_img.items()]
-x_data, y_data = zip(*x_data)
+x_data = [(v['img_id'], process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255., v['label'] - 1) for _, v in id_to_img.items()]
+id_data, x_data, y_data = zip(*x_data)
 
 
 # Split the train and dev sets
@@ -179,6 +179,20 @@ def write_predictions(idx, x, batch_size=100):
     logger.info('Wrote %i predictions into %s' % (len(predictions), predictions_path))
 
 
+# Write train + dev predictions with confidence and label into a file
+def write_predictions_with_conf(idx, x, y, batch_size=100):
+    assert len(idx) == len(x) == len(y)
+    predictions = []
+    for j in xrange(0, len(x), batch_size):
+        predictions.append(list(f_eval(x[j:j + batch_size])))
+    predictions = list(itertools.chain.from_iterable(predictions))
+    assert len(x) == len(predictions)
+    predictions_path = os.path.join(experiment.dump_path, 'train_predictions.csv')
+    with open(predictions_path, 'w') as f:
+        f.write('Id,label\n' + '\n'.join("%i,%s,%i,%i" % (i, str(p), p.argmax(), y_gold) for (i, p, y_gold) in zip(idx, predictions, y)) + '\n')
+    logger.info('Wrote %i predictions into %s' % (len(predictions), predictions_path))
+
+
 # Evaluate the model and write the predictions into a file
 if opts.evaluate == 1:
     logger.info('Score on dev: %f' % evaluate(x_valid, y_valid))  # Careful, since we ignored negative IDs before, devset is actually not the same...
@@ -186,6 +200,13 @@ if opts.evaluate == 1:
     logger.info('Found %i images to classify.' % len(id_to_img_test))
     id_data_test, x_data_test = zip(*[(v['img_id'], process_image(v['image'], parameters['gray'], opts.height, opts.width).astype(np.float32) / 255.) for _, v in id_to_img_test.items()])
     write_predictions(id_data_test, x_data_test)
+    exit()
+
+
+# Evaluate the model and write the train + dev predictions into a file, with the probabilities and the correct label
+if opts.evaluate == 2:
+    logger.info('Score on dev: %f' % evaluate(x_valid, y_valid))  # Careful, since we ignored negative IDs before, devset is actually not the same...
+    write_predictions_with_conf(id_data, x_data, y_data)
     exit()
 
 

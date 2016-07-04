@@ -1,20 +1,9 @@
-"""Helper functions to preprocess images.
-
-Fot the rotation, one can use the rotate image from scikit image.
-Be careful to use the options resize=True and mode='wrap'.
-"""
-
-import random
-
 import numpy as np
+from scipy import ndimage
 import cv2
-
-from skimage.transform import rotate
-from skimage.color import rgb2hsv, hsv2rgb
 
 
 def process_image(image, gray, height, width):
-    """Resize the image to height and width."""
     image = image.astype(np.float32).mean(axis=2) if gray else image
     if image.shape[:2] != (height, width):
         image = cv2.resize(image, (width, height), interpolation=cv2.INTER_AREA)
@@ -24,85 +13,92 @@ def process_image(image, gray, height, width):
 
 
 def horizontal_flip(img):
-    """Flip the image along the horizontal axis."""
+    """
+    Flips the image along the horizontal axis.
+    """
     return img[:, ::-1, :]
 
 
 def vertical_flip(img):
-    """Flip the image along the vertical axis."""
+    """
+    Flips the image along the vertical axis.
+    """
     return img[:, :, ::-1]
 
 
+def rotation_90(img):
+    """
+    Rotate the image of 90 degrees.
+    """
+    return np.rot90(img.transpose((1, 2, 0)), 1).transpose((2, 0, 1))
+
+
+def rotation_180(img):
+    """
+    Rotate the image of 180 degrees.
+    """
+    return img[:, ::-1, ::-1]
+
+
+def rotation_270(img):
+    """
+    Rotate the image of 270 degrees.
+    """
+    return np.rot90(img.transpose((1, 2, 0)), 3).transpose((2, 0, 1))
+
+
 def transposition(img):
-    """Transpose the image."""
+    """
+    Transpose the image.
+    """
     return img.transpose((0, 2, 1))
 
 
-def saturate(img, rate):
-    """Change saturation."""
-    assert -1.0 <= rate <= 1.0
-    new_img = rgb2hsv(img)
-    if rate < 0:
-        new_img[:, :, 1] += rate * new_img[:, :, 1]
-    else:
-        new_img[:, :, 1] += rate * (1 - new_img[:, :, 1])
-    return hsv2rgb(new_img)
-
-
-def random_transformation(img, label):
-    """Create a random transformation for a given sample.
-
-    Labels:
-    - 0: North-South orientation
-    - 1: East-West orientation
-    - 2: Flat roof
-    - 3: Other
+def small_rotation(img, max_angle=10):
     """
-    assert label in xrange(4), 'Label error, value should be between 0 and 3'
+    Rotate the image of a small angle.
+    """
+    angle = (np.random.rand() * 2 - 1) * max_angle
+    return ndimage.rotate(img.transpose((1, 2, 0)), angle, reshape=False).transpose((2, 0, 1))
 
-    # for the transformation involving a rotation, the angle is modified
-    # randomly to change a bit the angle.
-    possible_transformations = [
-        'identity',
-        'rotation_90',
-        'rotation_180',
-        'rotation_270',
-        'horizontal_flip',
-        'vertical_flip',
-        'transposition',
-        'saturate'
-    ]
-    transformation = random.choice(possible_transformations)
 
-    #
-    # Transformation label invariant
-    #
-    if transformation == 'identity':
-        angle = random.choice([-10, -5, 0, 5, 10])
-        return rotate(img, angle, resize=True, mode='wrap'), label
-    if transformation == 'horizontal_flip':
-        return horizontal_flip(img), label
-    if transformation == 'vertical_flip':
-        return vertical_flip(img), label
-    if transformation == 'rotation_180':
-        angle = 180 + random.choice([-10, -5, 0, 5, 10])
-        return rotate(img, angle, resize=True, mode='wrap'), label
-    if transformation == 'saturate':
-        rate = random.choice([0.1, 0.2, -0.25, -0.5])
-        return saturate(img, rate)
+def random_transformation(x, y):
+    """
+    Create a random transformation for a given sample.
+    """
+    assert y in xrange(4)
+    # y == 0: North-South orientation
+    # y == 1: East-West orientation
+    # y == 2: Flat roof
+    # y == 3: Other
 
-    #
-    # Transformation label variant
-    #
-    new_label = 1 - label if label < 2 else label
+    possible_transformations = ["identity", "horizontal_flip", "vertical_flip", "rotation_90", "rotation_180", "rotation_270", "transposition", "small_rotation"]
+    transformation = np.random.choice(possible_transformations)
 
-    if transformation == 'rotation_90':
-        angle = 90 + random.choice([-10, -5, 0, 5, 10])
-        return rotate(img, angle, resize=True, mode='wrap'), new_label
-    if transformation == 'rotation_270':
-        angle = 270 + random.choice([-10, -5, 0, 5, 10])
-        return rotate(img, angle, resize=True, mode='wrap'), new_label
-    if transformation == 'transposition':
-        return transposition(img), new_label
+    if transformation == "identity":
+        return x, y
+    elif transformation == "horizontal_flip":
+        return horizontal_flip(x), y
+    elif transformation == "vertical_flip":
+        return vertical_flip(x), y
+    elif transformation == "rotation_90":
+        if y <= 1:
+            return rotation_90(x), 1 - y
+        else:
+            return rotation_90(x), y
+    elif transformation == "rotation_180":
+        return rotation_180(x), y
+    elif transformation == "rotation_270":
+        if y <= 1:
+            return rotation_270(x), 1 - y
+        else:
+            return rotation_270(x), y
+    elif transformation == "transposition":
+        if y <= 1:
+            return transposition(x), 1 - y
+        else:
+            return transposition(x), y
+    elif transformation == "small_rotation":
+        return small_rotation(x), y
 
     assert(False)
