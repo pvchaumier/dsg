@@ -9,8 +9,12 @@ import random
 import numpy as np
 import cv2
 
-from skimage.transform import rotate
 from skimage.color import rgb2hsv, hsv2rgb
+from skimage.color.adapt_rgb import adapt_rgb, hsv_value
+from skimage.exposure import adjust_sigmoid
+from skimage.filters.rank import mean_bilateral
+from skimage.morphology import disk
+from skimage.transform import rotate
 
 
 def process_image(image, gray, height, width):
@@ -49,6 +53,12 @@ def saturate(img, rate):
     return hsv2rgb(new_img)
 
 
+@adapt_rgb(hsv_value)
+def mean_b(img):
+    """Return image with preserved borders but smoothed inners."""
+    return mean_bilateral(img, disk(10), s0=10, s1=50)
+
+
 def random_transformation(img, label):
     """Create a random transformation for a given sample.
 
@@ -70,7 +80,9 @@ def random_transformation(img, label):
         'horizontal_flip',
         'vertical_flip',
         'transposition',
-        'saturate'
+        'saturate',
+        'adjust_contrast',
+        'mean_b'
     ]
     transformation = random.choice(possible_transformations)
 
@@ -89,7 +101,11 @@ def random_transformation(img, label):
         return rotate(img, angle, resize=True, mode='wrap'), label
     if transformation == 'saturate':
         rate = random.choice([0.1, 0.2, -0.25, -0.5])
-        return saturate(img, rate)
+        return saturate(img, rate), label
+    if transformation == 'adjust_contrast':
+        return adjust_sigmoid(img), label
+    if transformation == 'mean_b':
+        return mean_b(img), label
 
     #
     # Transformation label variant
